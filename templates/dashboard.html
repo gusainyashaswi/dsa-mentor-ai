@@ -3,6 +3,7 @@
 <head>
     <title>DSA Mentor AI</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -51,6 +52,60 @@
             </ul>
         {% endif %}
     </div>
+
+    <hr>
+
+    <div class="mentor-section">
+        <h3>AI Mentor</h3>
+        <form action="/ask" method="POST">
+            <input type="text" name="message" placeholder="Ask me anything about DSA..." required>
+            <button type="submit">Ask</button>
+        </form>
+        {% if ai_response %}
+            <div class="mentor-response">
+                <strong>Mentor:</strong> {{ ai_response }}
+            </div>
+        {% endif %}
+    </div>
+
+    <hr>
+
+    <div class="progress-section">
+        <h3>Your Progress</h3>
+        <canvas id="progressChart" style="max-width: 500px; margin: 20px auto;"></canvas>
+        <ul style="list-style: none; padding: 0;">
+            {% for i in range(progress_data.labels|length) %}
+                <li>{{ progress_data.labels[i] }}: {{ progress_data.values[i] }} problems</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('progressChart').getContext('2d');
+        const progressData = {{ progress_data | tojson }};
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: progressData.labels,
+                datasets: [{
+                    label: 'Problems Solved',
+                    data: progressData.values,
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                }
+            }
+        });
+    </script>
 
 </body>
 </html>

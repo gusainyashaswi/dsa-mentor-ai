@@ -4,5 +4,10 @@
     {"topic": "array", "difficulty": "easy"},
     {"topic": "array", "difficulty": "easy"},
     {"topic": "graph", "difficulty": "easy"}
+  ],
+  "history": [
+    {"day": "Day 1", "count": 2},
+    {"day": "Day 2", "count": 4},
+    {"day": "Day 3", "count": 1}
   ]
 }

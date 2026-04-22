@@ -1,5 +1,5 @@
 import json
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 
 app = Flask(__name__)
 
@@ -175,6 +175,28 @@ def recommend_multiple_questions():
             
     return recommended
 
+def get_progress_data():
+    # Load user data safely
+    try:
+        user_data = load_json_data('data/user_data.json') or {}
+    except Exception:
+        user_data = {}
+        
+    history = user_data.get("history", [])
+    
+    labels = []
+    values = []
+    
+    # Extract day labels and problem counts
+    for entry in history:
+        if "day" in entry and "count" in entry:
+            labels.append(entry["day"])
+            values.append(entry["count"])
+            
+    return {
+        "labels": labels,
+        "values": values
+    }
 
 # Route
 @app.route('/')
@@ -182,7 +204,34 @@ def home():
     question = recommend_question()
     topic_stats = get_topic_strength()
     recommended_list = recommend_multiple_questions()
-    return render_template('dashboard.html', question=question, topic_stats=topic_stats, recommended_list=recommended_list)
+    progress_data = get_progress_data()
+    return render_template('dashboard.html', question=question, topic_stats=topic_stats, recommended_list=recommended_list, progress_data=progress_data)
+
+@app.route('/ask', methods=['POST'])
+def ask():
+    # Get user message from form
+    user_message = request.form.get('message', '').lower()
+    
+    # Simple rule-based response logic
+    if 'dp' in user_message:
+        chat_response = "You are weak in DP, focus on recursion and memoization."
+    elif 'next' in user_message:
+        chat_response = "Focus on your weakest topic and gradually increase difficulty."
+    else:
+        chat_response = "I'm here to help! Ask me about topics like 'dp' or your 'next' steps."
+    
+    # Reload all dashboard data
+    question = recommend_question()
+    topic_stats = get_topic_strength()
+    recommended_list = recommend_multiple_questions()
+    progress_data = get_progress_data()
+    
+    return render_template('dashboard.html', 
+                           question=question, 
+                           topic_stats=topic_stats, 
+                           recommended_list=recommended_list, 
+                           progress_data=progress_data,
+                           ai_response=chat_response)
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5001)
