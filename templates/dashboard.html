@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DSA Mentor AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <h1>DSA Mentor AI</h1>
+
+    {% if question %}
+        <h2>{{ question.name }}</h2>
+        <p>Topic: {{ question.topic }}</p>
+        <p>Difficulty: {{ question.difficulty }}</p>
+
+        <div class="reason-section">
+            <h3>Why this question?</h3>
+            <p>💡 <em>{{ question.reason }}</em></p>
+        </div>
+
+        <a href="{{ question.link }}" target="_blank">Solve Now</a>
+
+    {% else %}
+        <p>No question available</p>
+    {% endif %}
+
+    <hr>
+
+    <div class="stats-section">
+        <h3>Your Topic Strength</h3>
+        <ul class="stats-list">
+            <li><span>Array:</span> <strong>{{ topic_stats.array }}%</strong></li>
+            <li><span>Graph:</span> <strong>{{ topic_stats.graph }}%</strong></li>
+            <li><span>DP:</span> <strong>{{ topic_stats.dp }}%</strong></li>
+        </ul>
+    </div>
+
+    <hr>
+
+    <div class="plan-section">
+        <h3>Your Next Plan</h3>
+        {% if recommended_list %}
+            <ul class="plan-list">
+            {% for q in recommended_list %}
+                <li class="plan-card">
+                    <strong>{{ q.name }}</strong>
+                    <div class="plan-meta">Topic: {{ q.topic }} | Difficulty: {{ q.difficulty }}</div>
+                    <a href="{{ q.link }}" target="_blank">Solve</a>
+                </li>
+            {% endfor %}
+            </ul>
+        {% endif %}
+    </div>
+
+</body>
+</html>

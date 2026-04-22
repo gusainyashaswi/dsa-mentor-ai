@@ -1,0 +1,44 @@
+[
+  {
+    "id": 1,
+    "name": "Two Sum",
+    "topic": "array",
+    "difficulty": "easy",
+    "link": "https://leetcode.com/problems/two-sum/"
+  },
+  {
+    "id": 2,
+    "name": "Container With Most Water",
+    "topic": "array",
+    "difficulty": "medium",
+    "link": "https://leetcode.com/problems/container-with-most-water/"
+  },
+  {
+    "id": 3,
+    "name": "Number of Islands",
+    "topic": "graph",
+    "difficulty": "medium",
+    "link": "https://leetcode.com/problems/number-of-islands/"
+  },
+  {
+    "id": 4,
+    "name": "Course Schedule",
+    "topic": "graph",
+    "difficulty": "medium",
+    "link": "https://leetcode.com/problems/course-schedule/"
+  },
+  {
+    "id": 5,
+    "name": "Climbing Stairs",
+    "topic": "dp",
+    "difficulty": "easy",
+    "link": "https://leetcode.com/problems/climbing-stairs/"
+  },
+  {
+    "id": 6,
+    "name": "Coin Change",
+    "topic": "dp",
+    "difficulty": "medium",
+    "link": "https://leetcode.com/problems/coin-change/"
+  }
+]
