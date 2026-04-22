@@ -7,77 +7,164 @@
 </head>
 <body>
 
-    <h1>DSA Mentor AI</h1>
+    <div class="container">
+        <h1>DSA Mentor AI</h1>
 
-    {% if question %}
-        <h2>{{ question.name }}</h2>
-        <p>Topic: {{ question.topic }}</p>
-        <p>Difficulty: {{ question.difficulty }}</p>
+        <div class="card">
+            <div class="profiles-section">
+                <h3>Your Profiles</h3>
+                {% if user_profiles['leetcode_username'] or user_profiles['codeforces_handle'] %}
+                    <div style="margin-bottom: 15px;">
+                        {% if user_profiles['leetcode_username'] %}
+                            <div class="badge topic-badge" style="margin-bottom: 5px;">LeetCode: {{ user_profiles['leetcode_username'] }}</div>
+                        {% endif %}
+                        {% if user_profiles['codeforces_handle'] %}
+                            <div class="badge diff-badge" style="margin-bottom: 5px;">Codeforces: {{ user_profiles['codeforces_handle'] }}</div>
+                        {% endif %}
+                    </div>
 
-        <div class="reason-section">
-            <h3>Why this question?</h3>
-            <p>💡 <em>{{ question.reason }}</em></p>
+                    {% if cf_data %}
+                    <div class="cf-stats">
+                        <div class="cf-stats-label">Codeforces Stats</div>
+                        <div class="cf-stats-grid">
+                            <div class="cf-stat-box">
+                                <span class="cf-stat-value">{{ cf_data['rating'] }}</span>
+                                <span class="cf-stat-key">Rating</span>
+                            </div>
+                            <div class="cf-stat-box">
+                                <span class="cf-stat-value">{{ cf_data['max_rating'] }}</span>
+                                <span class="cf-stat-key">Max Rating</span>
+                            </div>
+                            <div class="cf-stat-box">
+                                <span class="cf-stat-value cf-rank">{{ cf_data['rank'] | capitalize }}</span>
+                                <span class="cf-stat-key">Rank</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if lc_stats %}
+                    <div class="lc-stats">
+                        <div class="cf-stats-label">LeetCode Stats</div>
+                        <div class="cf-stats-grid lc-stats-grid">
+                            <div class="cf-stat-box lc-total-box">
+                                <span class="cf-stat-value">{{ lc_stats['total'] }}</span>
+                                <span class="cf-stat-key">Total Solved</span>
+                            </div>
+                            <div class="cf-stat-box">
+                                <span class="cf-stat-value lc-easy">{{ lc_stats['easy'] }}</span>
+                                <span class="cf-stat-key">Easy</span>
+                            </div>
+                            <div class="cf-stat-box">
+                                <span class="cf-stat-value lc-medium">{{ lc_stats['medium'] }}</span>
+                                <span class="cf-stat-key">Medium</span>
+                            </div>
+                            <div class="cf-stat-box">
+                                <span class="cf-stat-value lc-hard">{{ lc_stats['hard'] }}</span>
+                                <span class="cf-stat-key">Hard</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endif %}
+
+                <form action="/profile" method="POST" class="profile-form" style="margin-top: 15px;">
+                    <div class="profile-form-row">
+                        <input type="text" name="leetcode_username" placeholder="LeetCode Username" value="{{ user_profiles['leetcode_username'] or '' }}">
+                        <input type="text" name="codeforces_handle" placeholder="Codeforces Handle" value="{{ user_profiles['codeforces_handle'] or '' }}">
+                    </div>
+                    <div class="profile-form-row lc-counts-row">
+                        <label class="lc-counts-label">LeetCode solved counts:</label>
+                        <input type="number" name="lc_easy" placeholder="Easy" min="0" value="{{ user_profiles['lc_easy'] if user_profiles['lc_easy'] is not none else '' }}">
+                        <input type="number" name="lc_medium" placeholder="Medium" min="0" value="{{ user_profiles['lc_medium'] if user_profiles['lc_medium'] is not none else '' }}">
+                        <input type="number" name="lc_hard" placeholder="Hard" min="0" value="{{ user_profiles['lc_hard'] if user_profiles['lc_hard'] is not none else '' }}">
+                    </div>
+                    <button type="submit" class="btn-primary">Update Profiles</button>
+                </form>
+            </div>
         </div>
 
-        <a href="{{ question.link }}" target="_blank">Solve Now</a>
+        <div class="card highlight-card">
+            {% if question %}
+                <h2>{{ question['name'] }}</h2>
+                <div class="meta-info">
+                    <span class="badge topic-badge">{{ question['topic'] }}</span>
+                    <span class="badge diff-badge">{{ question['difficulty'] }}</span>
+                </div>
 
-    {% else %}
-        <p>No question available</p>
-    {% endif %}
+                <div class="reason-section">
+                    <h3>Why this question?</h3>
+                    <p>💡 <em>{{ question['reason'] }}</em></p>
+                </div>
 
-    <hr>
+                <a href="{{ question['link'] }}" target="_blank" class="btn-primary">Solve Now</a>
+            {% else %}
+                <p>No question available</p>
+            {% endif %}
+        </div>
 
-    <div class="stats-section">
-        <h3>Your Topic Strength</h3>
-        <ul class="stats-list">
-            <li><span>Array:</span> <strong>{{ topic_stats.array }}%</strong></li>
-            <li><span>Graph:</span> <strong>{{ topic_stats.graph }}%</strong></li>
-            <li><span>DP:</span> <strong>{{ topic_stats.dp }}%</strong></li>
-        </ul>
-    </div>
-
-    <hr>
-
-    <div class="plan-section">
-        <h3>Your Next Plan</h3>
-        {% if recommended_list %}
-            <ul class="plan-list">
-            {% for q in recommended_list %}
-                <li class="plan-card">
-                    <strong>{{ q.name }}</strong>
-                    <div class="plan-meta">Topic: {{ q.topic }} | Difficulty: {{ q.difficulty }}</div>
-                    <a href="{{ q.link }}" target="_blank">Solve</a>
-                </li>
-            {% endfor %}
-            </ul>
-        {% endif %}
-    </div>
-
-    <hr>
-
-    <div class="mentor-section">
-        <h3>AI Mentor</h3>
-        <form action="/ask" method="POST">
-            <input type="text" name="message" placeholder="Ask me anything about DSA..." required>
-            <button type="submit">Ask</button>
-        </form>
-        {% if ai_response %}
-            <div class="mentor-response">
-                <strong>Mentor:</strong> {{ ai_response }}
+        <div class="card">
+            <div class="stats-section">
+                <h3>Your Topic Strength</h3>
+                <ul class="stats-list">
+                    <li><span>Array:</span> <strong>{{ topic_stats['array'] }}%</strong></li>
+                    <li><span>Graph:</span> <strong>{{ topic_stats['graph'] }}%</strong></li>
+                    <li><span>DP:</span> <strong>{{ topic_stats['dp'] }}%</strong></li>
+                </ul>
+                
+                <hr style="margin: 25px 0; border: none; border-top: 1px solid #eee;">
+                
+                <h3>Confidence Score</h3>
+                <p style="margin-bottom: 10px; color: #555;">{{ confidence['message'] }}</p>
+                <div style="background-color: #f0f2f5; border-radius: 8px; height: 12px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);">
+                    <div style="background-color: #2ecc71; width: {{ confidence['percentage'] }}%; height: 100%; transition: width 0.5s ease;"></div>
+                </div>
             </div>
-        {% endif %}
-    </div>
+        </div>
 
-    <hr>
+        <div class="card highlight-card">
+            <div class="plan-section">
+                <h3>Your Next Plan</h3>
+                {% if recommended_list %}
+                    <ul class="plan-list">
+                    {% for q in recommended_list %}
+                        <li class="plan-card">
+                            <strong>{{ q['name'] }}</strong>
+                            <div class="plan-meta">Topic: {{ q['topic'] }} | Difficulty: {{ q['difficulty'] }}</div>
+                            <a href="{{ q['link'] }}" target="_blank" class="btn-secondary">Solve</a>
+                        </li>
+                    {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+        </div>
 
-    <div class="progress-section">
-        <h3>Your Progress</h3>
-        <canvas id="progressChart" style="max-width: 500px; margin: 20px auto;"></canvas>
-        <ul style="list-style: none; padding: 0;">
-            {% for i in range(progress_data.labels|length) %}
-                <li>{{ progress_data.labels[i] }}: {{ progress_data.values[i] }} problems</li>
-            {% endfor %}
-        </ul>
+        <div class="card">
+            <div class="mentor-section">
+                <h3>AI Mentor</h3>
+                <form action="/ask" method="POST" class="mentor-form">
+                    <input type="text" name="message" placeholder="Ask me anything about DSA..." required>
+                    <button type="submit" class="btn-primary">Ask</button>
+                </form>
+                {% if ai_response %}
+                    <div class="mentor-response">
+                        <strong>Mentor:</strong> {{ ai_response }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="progress-section">
+                <h3>Your Progress</h3>
+                <canvas id="progressChart" style="max-width: 500px; margin: 20px auto;"></canvas>
+                <ul class="progress-list">
+                    {% for i in range(progress_data['labels']|length) %}
+                        <li>{{ progress_data['labels'][i] }}: <strong>{{ progress_data['values'][i] }}</strong> problems</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -90,8 +177,8 @@
                 datasets: [{
                     label: 'Problems Solved',
                     data: progressData.values,
-                    borderColor: '#007bff',
-                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    borderColor: '#3498db',
+                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
                     fill: true,
                     tension: 0.3
                 }]

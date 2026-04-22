@@ -1,12 +1,61 @@
 import json
-from flask import Flask, render_template, request
+import requests
+from flask import Flask, render_template, request, redirect, url_for
 
 app = Flask(__name__)
+
+# Temporary in-memory storage for profiles
+user_profiles = {
+    "leetcode_username": None,
+    "codeforces_handle": None,
+    "lc_easy": None,
+    "lc_medium": None,
+    "lc_hard": None
+}
+
+def get_leetcode_stats():
+    """Build a LeetCode stats dict from manually entered counts.
+    Returns None when no counts have been saved yet."""
+    easy   = user_profiles.get("lc_easy")
+    medium = user_profiles.get("lc_medium")
+    hard   = user_profiles.get("lc_hard")
+    # Only return stats when at least one count exists
+    if easy is None and medium is None and hard is None:
+        return None
+    easy   = easy   or 0
+    medium = medium or 0
+    hard   = hard   or 0
+    return {
+        "easy":   easy,
+        "medium": medium,
+        "hard":   hard,
+        "total":  easy + medium + hard
+    }
 
 # Load JSON data
 def load_json_data(filepath):
     with open(filepath, 'r') as file:
         return json.load(file)
+
+def fetch_codeforces_data(handle):
+    if not handle:
+        return None
+    try:
+        url = f"https://codeforces.com/api/user.info?handles={handle}"
+        response = requests.get(url, timeout=5)
+        data = response.json()
+        
+        if data.get("status") == "OK" and data.get("result"):
+            user_info = data["result"][0]
+            return {
+                "rating": user_info.get("rating", "N/A"),
+                "max_rating": user_info.get("maxRating", "N/A"),
+                "rank": user_info.get("rank", "Unrated")
+            }
+        return None
+    except Exception:
+        # Handle errors if user not found or network issues
+        return None
 
 # Smart recommendation based on user's weakest topic and difficulty
 def recommend_question():
@@ -198,6 +247,43 @@ def get_progress_data():
         "values": values
     }
 
+def get_confidence_score():
+    try:
+        user_data = load_json_data('data/user_data.json') or {}
+    except Exception:
+        user_data = {}
+        
+    solved_list = user_data.get("solved", [])
+    
+    if not solved_list:
+        return {"percentage": 0, "message": "You are 0% ready for intermediate level. Start practicing!"}
+        
+    diff_count = {"easy": 0, "medium": 0, "hard": 0}
+    for entry in solved_list:
+        diff = entry.get("difficulty", "easy")
+        if diff in diff_count:
+            diff_count[diff] += 1
+            
+    if diff_count["hard"] >= max(diff_count["easy"], diff_count["medium"]):
+        next_level = "expert"
+        score = diff_count["hard"] * 2 + diff_count["medium"]
+        target = 30
+    elif diff_count["medium"] >= max(diff_count["easy"], diff_count["hard"]):
+        next_level = "advanced"
+        score = diff_count["medium"] * 2 + diff_count["easy"]
+        target = 20
+    else:
+        next_level = "intermediate"
+        score = diff_count["easy"] * 1 + (diff_count["medium"] * 2)
+        target = 10
+        
+    percentage = min(int((score / target) * 100), 100)
+    
+    return {
+        "percentage": percentage,
+        "message": f"You are {percentage}% ready for {next_level} level"
+    }
+
 # Route
 @app.route('/')
 def home():
@@ -205,33 +291,106 @@ def home():
     topic_stats = get_topic_strength()
     recommended_list = recommend_multiple_questions()
     progress_data = get_progress_data()
-    return render_template('dashboard.html', question=question, topic_stats=topic_stats, recommended_list=recommended_list, progress_data=progress_data)
+    confidence = get_confidence_score()
+    
+    # Fetch live Codeforces data if handle is connected
+    cf_data = fetch_codeforces_data(user_profiles.get("codeforces_handle"))
+    
+    lc_stats = get_leetcode_stats()
+
+    return render_template('dashboard.html', 
+                           question=question, 
+                           topic_stats=topic_stats, 
+                           recommended_list=recommended_list, 
+                           progress_data=progress_data, 
+                           confidence=confidence,
+                           user_profiles=user_profiles,
+                           cf_data=cf_data,
+                           lc_stats=lc_stats)
 
 @app.route('/ask', methods=['POST'])
 def ask():
     # Get user message from form
     user_message = request.form.get('message', '').lower()
-    
-    # Simple rule-based response logic
-    if 'dp' in user_message:
-        chat_response = "You are weak in DP, focus on recursion and memoization."
-    elif 'next' in user_message:
-        chat_response = "Focus on your weakest topic and gradually increase difficulty."
-    else:
-        chat_response = "I'm here to help! Ask me about topics like 'dp' or your 'next' steps."
-    
-    # Reload all dashboard data
-    question = recommend_question()
+
+    # Load topic strength to personalize the response
     topic_stats = get_topic_strength()
+    total_solved = sum(topic_stats.values())
+
+    # --- Context: No data (brand new user) ---
+    if total_solved == 0:
+        ai_response = "Start with arrays and easy problems before moving ahead."
+
+    # --- Context: User has data, check keyword + strength ---
+    elif 'dp' in user_message:
+        if topic_stats.get('dp', 0) >= 50:
+            ai_response = "You're doing well in DP! Try hard problems like 'Edit Distance' or 'Burst Balloons'."
+        else:
+            ai_response = "You are weak in DP. Focus on recursion and memoization before tackling harder problems."
+
+    elif 'graph' in user_message:
+        if topic_stats.get('graph', 0) >= 50:
+            ai_response = "Strong graph skills! Challenge yourself with Dijkstra's algorithm or topological sort."
+        else:
+            ai_response = "Practice graph basics: BFS, DFS, and cycle detection first."
+
+    elif 'array' in user_message:
+        if topic_stats.get('array', 0) >= 50:
+            ai_response = "Arrays are your strength! Move on to sliding window and two-pointer hard problems."
+        else:
+            ai_response = "Start with array basics: two-sum, max subarray, and prefix sums."
+
+    elif 'next' in user_message:
+        # Suggest based on the weakest topic
+        weakest = min(topic_stats, key=lambda t: topic_stats[t])
+        ai_response = f"Focus on your weakest topic ({weakest}) and gradually increase difficulty."
+
+    else:
+        # Generic fallback with a useful nudge based on current progress
+        weakest = min(topic_stats, key=lambda t: topic_stats[t])
+        ai_response = f"You can ask me about 'dp', 'graph', 'array', or 'next'. Tip: you need more practice in {weakest}!"
+
+    question = recommend_question()
     recommended_list = recommend_multiple_questions()
     progress_data = get_progress_data()
+    confidence = get_confidence_score()
     
-    return render_template('dashboard.html', 
-                           question=question, 
-                           topic_stats=topic_stats, 
-                           recommended_list=recommended_list, 
+    # Fetch live Codeforces data if handle is connected
+    cf_data = fetch_codeforces_data(user_profiles.get("codeforces_handle"))
+
+    lc_stats = get_leetcode_stats()
+
+    return render_template('dashboard.html',
+                           question=question,
+                           topic_stats=topic_stats,
+                           recommended_list=recommended_list,
                            progress_data=progress_data,
-                           ai_response=chat_response)
+                           confidence=confidence,
+                           ai_response=ai_response,
+                           user_profiles=user_profiles,
+                           cf_data=cf_data,
+                           lc_stats=lc_stats)
+
+@app.route('/profile', methods=['POST'])
+def profile():
+    lc = request.form.get('leetcode_username', '')
+    cf = request.form.get('codeforces_handle', '')
+
+    user_profiles["leetcode_username"] = lc.strip() if lc and lc.strip() else None
+    user_profiles["codeforces_handle"] = cf.strip() if cf and cf.strip() else None
+
+    def parse_count(field):
+        """Return int if a valid non-negative number was submitted, else None."""
+        val = request.form.get(field, '').strip()
+        if val.isdigit():
+            return int(val)
+        return None
+
+    user_profiles["lc_easy"]   = parse_count('lc_easy')
+    user_profiles["lc_medium"] = parse_count('lc_medium')
+    user_profiles["lc_hard"]   = parse_count('lc_hard')
+
+    return redirect(url_for('home'))
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5001)
